@@ -1,0 +1,526 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="ja" lang="ja">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+  <meta http-equiv="Content-Language" content="ja" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta http-equiv="Content-Script-Type" content="text/javascript" />
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" />
+
+  <title>お問い合わせ | Fuji Precision Park in Vietnam</title>
+  <script type="text/JavaScript">
+    image = new Image();
+    image.src="http://www.fujiprecision.com/images/favicon.ico";
+  </script>
+  <link rel="shortcut icon" href="http://www.fujiprecision.com/images/favicon.ico" type="image/vnd.microsoft.icon">
+  <meta name="Description" content="ベトナム進出をサポートします。ハノイ市内から30分の便利な立地条件でビジネスをスタートできます。価格競争時代を勝ち抜くためにもベトナム進出をお進めいたします。" />
+  <meta name="Keywords" content="Fuji Precision Park,ベトナム,レンタル工場,イエン・フォン工場団地,ハノイ工業団地,バクニン工業団地,フジプレシジョン" />
+  <script type="text/javascript" src="http://www.fujiprecision.com/js/jquery-1.3.2.js"></script>
+  <script type="text/javascript" src="http://www.fujiprecision.com/js/fancyzoom/js-global/FancyZoom.js"></script>
+  <script type="text/javascript" src="http://www.fujiprecision.com/js/fancyzoom/js-global/FancyZoomHTML.js"></script>
+  <script type="text/javascript" language="JavaScript" src="/js/iwd_lpo.js"></script>
+  <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+
+<!--
+  /*=====================================================
+  システム名：IWD CMS
+  処理名　　：パブリッシュ用JS
+  開発開始日：2009-04-20
+  更新履歴　：
+  開発者　　：
+  =====================================================*/
+
+-->
+<script type="text/javascript"><!--
+
+  /*---------------------------------------
+  必須項目チェック
+    ---------------------------------------*/
+    function chkHissu(frm){
+
+      /* 必須入力のname属性 */
+        var hissu=Array("iINPUT0","iINPUT1","iINPUT3","iINPUT4","iINPUT5");
+
+        /* アラート表示用 */
+        var hissu_nm = Array("会社名","お名前","メールアドレス","電話番号","お問い合わせ内容（複数選択可）");
+
+        /* 必須入力の数 */
+          var len=hissu.length;
+
+          for(i=0; i<len; i++){
+            var obj=frm.elements[hissu[i]];
+            /* テキストボックス or テキストエリアが入力されているか調べる */
+              if(obj.type=="text" || obj.type=="textarea" || obj.type=="password"){
+                if(obj.value==""){
+                  /* 入力されていなかったらアラート表示 */
+                  alert(hissu_nm[i]+"は必須入力項目です");
+                  /* 未入力のエレメントにフォーカスを当てる */
+                  frm.elements[hissu[i]].focus();
+                  return false;
+                }
+                /* プルダウンが選択されているか調べる */
+              }else if(obj.type=="select-one"){
+                if(obj.value=="" || obj.value==-1){
+                  /* 入力されていなかったらアラート表示 */
+                  alert(hissu_nm[i]+"は必須入力項目です");
+                  /* 未入力のエレメントにフォーカスを当てる */
+                  frm.elements[hissu[i]].focus();
+                  return false;
+                }
+                /* チェックボックスが入力されているか調べる */
+                }else if(obj.type=="checkbox"){
+                  if(!obj.checked){
+                    /* 入力されていなかったらアラート表示 */
+                    alert(hissu_nm[i]+"は必須入力項目です");
+                    /* 未入力のエレメントにフォーカスを当てる */
+                    frm.elements[hissu[i]].focus();
+                    return false;
+                  }
+                }else{
+                  /* radioボタンがチェックされているか調べる */
+                    for(var j=0, chk=0; j<obj.length; j++){
+                      /* チェックされていたらchkフラグをプラス */
+                      if(obj[j].checked) chk++;
+                    }
+                    if(chk==0){
+                      /* 1つもチェックされていない場合はfalseを返してフォーム送信しない */
+                      alert(hissu_nm[i]+"は必須入力項目です");
+                      return false;
+                    }
+                  }
+                }
+
+                /*--[mail_check]--*/
+                /*--[tel_check]--*/
+                /*--[id_check]--*/
+                /*--[id_exists_check]--*/
+
+                return true;
+              }
+
+  /*---------------------------------------
+  ajax設定
+  ---------------------------------------*/
+  var ajax;
+
+  function createHttpRequest(){
+    if(window.XMLHttpRequest){
+      //Win Mac Linux m1,f1,o8 Mac s1 Linux k3 & Win e7用
+      return new XMLHttpRequest() ;
+    } else if(window.ActiveXObject){
+      //Win e4,e5,e6用
+      try {
+        return new ActiveXObject("Msxml2.XMLHTTP.6.0") ;
+      } catch (e) {
+        try {
+          return new ActiveXObject("Microsoft.XMLHTTP.3.0") ;
+        } catch (ee) {
+          return null ;
+        }
+      }
+    } else  {
+      return null ;
+    }
+  }
+
+  /*---------------------------------------
+  IDの重複チェック
+  ---------------------------------------*/
+  function chkRegistID(){
+    tObj   = document.getElementById("dbcode");
+    dbcode = tObj.value;
+    tObj   = document.getElementById("frmid");
+    id     = tObj.value;
+    if(id.length>=0){
+      ajax = createHttpRequest();
+      var ua = navigator.userAgent;
+      var safari    = ua.indexOf("Safari") != -1;
+      var konqueror = ua.indexOf("Konqueror") != -1;
+      var mozes     = ((a=navigator.userAgent.split("Gecko/")[1] )?a.split(" ")[0]:0) >= 20011128;
+      if(window.opera || safari || konqueror || mozes){
+        ajax.onload = function () { onLoadedId(ajax) }
+      } else {
+        //チェック結果の関数を指定する
+        ajax.onreadystatechange =  function () { onLoadedId(ajax) }
+      }
+      //phpファイルを指定する
+      ajax.open('POST','./ajax/ajax_checkid.php',true);
+      ajax.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+      ajax.send('id='+dbcode+'|'+id);
+    }
+  }
+
+  function onLoadedId( ajax ){
+    if( ajax.readyState == 4 && ajax.status == 200 ){
+      var resObj = ajax.responseText;
+      if(resObj>0){
+        document.getElementById("frmid").style.backgroundColor = '#fffffe'; 
+        $('#idmsg').html("(IDが短いか重複しています)");
+      }else{
+        document.getElementById("frmid").style.backgroundColor = '#FFFFFF'; 
+        $('#idmsg').html("");
+      }
+    }
+  }
+
+  /*---------------------------------------
+  郵便番号からの住所入力
+  ---------------------------------------*/
+  function f_ViewAddr(){
+    tObj  = document.getElementById("zip");
+    zip   = tObj.value;
+    if(zip.length>=3){
+      document.getElementById("pref").value = "";
+      document.getElementById("city").value = "";
+    }
+    ajax = createHttpRequest();
+    var ua = navigator.userAgent;
+    var safari    = ua.indexOf("Safari") != -1;
+    var konqueror = ua.indexOf("Konqueror") != -1;
+    var mozes     = ((a=navigator.userAgent.split("Gecko/")[1] )?a.split(" ")[0]:0) >= 20011128;
+    if(window.opera || safari || konqueror || mozes){
+      ajax.onload = function () { onLoaded(ajax) }
+    } else {
+      ajax.onreadystatechange =  function () { onLoaded(ajax) }
+    }
+    //ajax.open('POST','http://www.oopsdemo.com/iwd/function/ajax_zip.php',true);
+    //ajax.open('POST','../../function/ajax_zip.php',true);
+    ajax.open('POST','./ajax/ajax_zip.php',true);
+    ajax.setRequestHeader('Content-Type','application/x-www-form-urlencoded');
+
+    ajax.send('zip='+zip);
+  }
+
+  function onLoaded( ajax ){
+    if( ajax.readyState == 4 && ajax.status == 200 ){
+      var resObj = ajax.responseText;
+      addList    = new Array();
+      addList    = resObj.split(",");
+
+      document.getElementById("pref").value = '';
+      document.getElementById("city").value = '';
+
+      if(addList[1] && addList[1]!='undefined'){
+        document.getElementById("pref").value = addList[1];
+      }
+      if(addList[2]){
+        document.getElementById("city").value = addList[2];
+      }
+      if(addList[3]){
+        document.getElementById("city").value += addList[3];
+      }
+      if(addList[4]){
+        document.getElementById("city").value += addList[4];
+      }
+    }
+  }
+
+  /*----------------------------------------------------------------
+  電話番号の形式チェック
+  ----------------------------------------------------------------*/
+  function chkRegTel(str){
+    if(str==''){
+      return true;
+    }
+    var chk = str.match(/^\d{3}-\d{4}-\d{4}$|^\d{3}-\d{3}-\d{4}$|^\d{4}-\d{2}-\d{4}$|^\d{2}-\d{4}-\d{4}$/);
+    if(!chk || !str){
+      alert(str + "は不正な形式です。");
+      return false;
+    }else{
+        //alert(str + "は正しい形式です。");
+        return true;
+      }
+    }
+
+  /*----------------------------------------------------------------
+  メールアドレスの形式チェック
+  ----------------------------------------------------------------*/
+  function chkRegEmail(str){
+    /* E-mail形式の正規表現パターン */
+    /* @が含まれていて、最後が .(ドット)でないなら正しいとする */
+    var Seiki=/[!#-9A-~]+@+[a-z0-9]+.+[^.]$/i;
+    /* 入力された値がパターンにマッチするか調べる */
+    if(str!=""){
+      if(str.match(Seiki)){
+        return true;
+      }else{
+        alert("メールアドレスの形式が不正です");
+        return false;
+      }
+    }else{
+      return true;
+    }
+  }
+
+--></script>
+<link rel="stylesheet" type="text/css" media="all" href="http://www.fujiprecision.com/css/import.css" />
+<script><!--
+	//Ajax for Preview
+	$(document).ready(function(){
+
+		
+
+		//擬似フラッシュ
+		/*---[moviejs]---*/
+		/*---[/moviejs]---*/
+
+	});
+
+  //--></script>
+  <!--[/ajax]-->
+</head>
+<!--
+  IWD CMS Template Type A
+  Release 1.00 2009-04-04
+  Author  ISSUE / Shin IKEDA(OOPS!Arts Factory.)
+  Generated 2018-09-04 15:56:57
+-->
+<body id="bg3" onload="setupZoom();" class="test">
+
+
+  <div id="container">
+    <!--[topbox]-->
+    <div id="topbox"><div id="topboxin">
+
+      <h1><a href=http://www.fujiprecision.com/index.html></a></h1>
+
+      <!--[header_menu]-->
+      <p>｜<a href='http://www.fujiprecision.com/index.html'>日 本 語</a>｜<a href='http://www.fujiprecision.com/en_top.html'>English</a>｜</p>
+      <!--[/header_menu]-->
+
+    </div></div>
+    <!--[/topbox]-->
+    <!--[wrapper]-->
+    <!--[sidepos]-->
+    <div id="wrapper" class="side_left">
+     <!--[/sidepos]-->
+
+
+     <!--[main]-->
+     <div id="main">
+       <!--[topics_list]-->
+
+       <!--[contents_block]-->
+
+       <div id="expart">
+        <font color=#404040><img alt="" width="620" height="44" src="http://www.fujiprecision.com/images/contact.jpg" /><br />
+          <br />
+          <img alt="" align="left" width="104" height="95" src="http://www.fujiprecision.com/images/mail.gif" />お問い合わせメールは平日（9時～17時）の受付となります。 土日祝日および時間外にいただいたメールにつきましては、翌営業日の受付となりますので、予めご了承ください。 なお、お問い合わせ内容によっては、ご回答にお時間をいただく場合や、ご回答できない場合もございますので、あらかじめご了承ください。<br />
+          <br />
+          <br />
+          <br />
+          <p><!--[FORM]-->
+            <form action='formview.php' method='post' name='MyForm' onsubmit="return chkHissu(this)" accept-charset="UTF-8">
+              <table class='form'>
+                <tr>
+                  <th width=25%>
+                    会社名<strong>（※）</strong></th>
+                    <td>
+                      <!--[iINPUT0]-->
+                      <input type=text name='iINPUT0' size=50 maxlength=50 value='' >
+                      <!--[/iINPUT0]-->
+                    </td>
+                  </tr>
+                  <tr>
+                    <th width=25%>
+                      お名前<strong>（※）</strong></th>
+                      <td>
+                        <!--[iINPUT1]-->
+                        <input type=text name='iINPUT1' size=50 maxlength=50 value='' >
+                        <!--[/iINPUT1]-->
+                      </td>
+                    </tr>
+                    <tr>
+                      <th width=25%>
+                      ご住所</th>
+                      <td>
+                        <!--[iINPUT2]-->
+                        郵便番号 <input type=text name='iINPUT2_zip' id='zip' size=9 maxlength=8 value='' onkeyup="f_ViewAddr();" style='ime-mode:disabled' ><br>
+                        都道府県 <input type=text name='iINPUT2_pref' id='pref' size=20 maxlength=20 value='' ><br>
+                        市区町村 <input type=text name='iINPUT2_city' id='city' size=40 maxlength=50 value='' ><br>
+                        　番地等 <input type=text name='iINPUT2_town' size=40 maxlength=50 value='' ><br>
+                        　建物名 <input type=text name='iINPUT2_buil' size=40 maxlength=50 value='' >
+                        <!--[/iINPUT2]-->
+                      </td>
+                    </tr>
+                    <tr>
+                      <th width=25%>
+                        メールアドレス<strong>（※）</strong></th>
+                        <td>
+                          <!--[iINPUT3]-->
+                          <input type=text name='iINPUT3' size=50 maxlength=255 value='' style='ime-mode:disabled' >
+                          <!--[/iINPUT3]-->
+                        </td>
+                      </tr>
+                      <tr>
+                        <th width=25%>
+                          電話番号<strong>（※）</strong></th>
+                          <td>
+                            <!--[iINPUT4]-->
+                            <input type=text name='iINPUT4' size=16 maxlength=15 value='' style='ime-mode:disabled' >
+                            <!--[/iINPUT4]-->
+                          </td>
+                        </tr>
+                        <tr>
+                          <th width=25%>
+                            お問い合わせ内容（複数選択可）<strong>（※）</strong></th>
+                            <td>
+                              <!--[iINPUT5]-->
+                              <input type=checkbox name='iINPUT5[]' value='レンタル工場詳細'>レンタル工場詳細&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='レンタル工場見積もり'>レンタル工場見積もり&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='ベトナム情報'>ベトナム情報&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='弊社サービス内容'>弊社サービス内容&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='ハノイ情報'>ハノイ情報&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='内装工事見積もり'>内装工事見積もり&nbsp;
+                              <input type=checkbox name='iINPUT5[]' value='見学ご希望'>見学ご希望&nbsp;
+                              <!--[/iINPUT5]-->
+                            </td>
+                          </tr>
+                          <tr>
+                            <th width=25%>
+                            お問い合わせ内容詳細</th>
+                            <td>
+                              <!--[iINPUT6]-->
+                              <textarea name='iINPUT6'></textarea>
+                              <!--[/iINPUT6]-->
+                            </td>
+                          </tr>
+                          <tr>
+                            <th width=25%>
+                            業種</th>
+                            <td>
+                              <!--[iINPUT7]-->
+                              <input type=radio name='iINPUT7' value='繊維' CHECKED>繊維&nbsp;
+                              <input type=radio name='iINPUT7' value='食品' >食品&nbsp;
+                              <input type=radio name='iINPUT7' value='電機機械器具' >電機機械器具&nbsp;
+                              <input type=radio name='iINPUT7' value='金属製品' >金属製品&nbsp;
+                              <input type=radio name='iINPUT7' value='一般機械器具' >一般機械器具&nbsp;
+                              <input type=radio name='iINPUT7' value='化学工業' >化学工業&nbsp;
+                              <input type=radio name='iINPUT7' value='プラスチック' >プラスチック&nbsp;
+                              <input type=radio name='iINPUT7' value='医療関係' >医療関係&nbsp;
+                              <input type=radio name='iINPUT7' value='精密機械器具' >精密機械器具&nbsp;
+                              <input type=radio name='iINPUT7' value='ゴム製品' >ゴム製品&nbsp;
+                              <input type=radio name='iINPUT7' value='印刷' >印刷&nbsp;
+                              <!--[/iINPUT7]-->
+                            </td>
+                          </tr>
+                          <tr>
+                            <th width=25%>
+                            その他</th>
+                            <td>
+                              <!--[iINPUT8]-->
+                              <textarea name='iINPUT8'></textarea>
+                              <!--[/iINPUT8]-->
+                            </td>
+                          </tr>
+                          <tr>
+                            <th width=25%>
+                            備考</th>
+                            <td>
+                              <!--[iINPUT9]-->
+                              <textarea name='iINPUT9'></textarea>
+                              <!--[/iINPUT9]-->
+                            </td>
+                          </tr>
+                        </table>
+                        <!--[HISSUMSG]-->
+                        <p><strong>（※）</strong><font color=#404040>は必須項目です。</font></p>
+                        <!--[/HISSUMSG]-->
+                        <input type=hidden name='iCCOLOR' value='#404040'>
+                        <input type=hidden name='iINPUTMAX' value='10'>
+                        <input type=hidden name='iINPUTELE' value='NAME|会社名||1|#NAME|お名前||1|#ADDRESS|ご住所|||#MAIL|メールアドレス||1|#TEL|電話番号||1|#CHECK|お問い合わせ内容（複数選択可）|レンタル工場詳細,レンタル工場見積もり,ベトナム情報,弊社サービス内容,ハノイ情報,内装工事見積もり,見学ご希望|1|#TEXTAREA|お問い合わせ内容詳細|||#RADIO|業種|繊維,食品,電機機械器具,金属製品,一般機械器具,化学工業,プラスチック,医療関係,精密機械器具,ゴム製品,印刷||#TEXTAREA|その他|||#TEXTAREA|備考|||#'>
+                        <input type=hidden name='iHTMLNM' value='jp_contact_view.html'>
+                        <input type=hidden name='iOWNERID' value='bee515'>
+                        <input type=hidden name='iDBNAME' id='dbcode' value='srmrYT3GjzGZ922k'>
+                        <input type=hidden name='iREFHTMLNM' id='refhtmlnm' value='jp_contact.html'>
+                        <input type=hidden name='iMOVHTMLNM' id='movhtmlnm' value=''>
+                        <!--[SUBMIT]-->
+                        <p class='send'><input type='reset' value='内容をリセット' />　<input type='submit' value='入力内容の確認' /></p>
+                        <!--[/SUBMIT]-->
+                        <!--[ELEMENTS]-->
+                        <input type=hidden name='iIDPOS' value='-1'>
+                        <input type=hidden name='iPWPOS' value='-1'>
+                        <input type=hidden name='iMAILPOS' value='3'>
+                        <input type=hidden name='iFRMMAILTITLE' value='Fuji Precision Park へのお問い合わせについて'>
+                        <input type=hidden name='iFRMMAILSENDER' value='Fuji Precision Park 事務局'>
+                        <input type=hidden name='iFRMMAILADR1' value='info1@fujiprecision.com'>
+                        <input type=hidden name='iFRMMAILADR2' value='info1@fujiprecision.com'>
+                        <input type=hidden name='iFRMMAILHEADER' value='Fuji Precision Park へのお問い合わせをいただきまして
+                        ありがとうございます。
+
+                        下記内容にて受付いたしました。
+                        後ほど、お電話もしくはメールにてご連絡いたしますので、しばらくお待ち下さい。'>
+                        <input type=hidden name='iFRMMAILFOOTER' value='￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣￣ 
+                        Fuji Precision Co., Ltd. (フジ プレシション）
+                        E-mail: info1@fujiprecision.com
+                        Address: Yen Phong Industrial Zone, Yen Phong Dist., Bac Ninh Province
+                        TEL / FAX　+84-241-3689-330 
+                        URL: http://www.fujiprecision.com
+                        ＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿'>
+                        <input type=hidden name='iFRMLANGUAGE' value='JPN'>
+                        <!--[/ELEMENTS]-->
+                      </form>
+                      <!--[/FORM]-->
+                      <br />
+                      <br />
+                      お問い合わせ先 　　　　　TEL　+81-544-58-1501 (Japan)　/　+84-222-3689-330 (Vietnam)<br />
+                      直接のメールアドレスは <a href="mailto:info1@fujiprecision.com">info1@fujiprecision.com</a></p><br />&nbsp;<br />&nbsp;</font></div>
+
+                      <!--[/contents_block]-->
+
+                    </div><hr />
+                    <!--[/main]-->
+
+                    <!--[side]-->
+                    <div id="side" style="background: url('http://www.fujiprecision.com/images/wrapper.gif') left top repeat;">
+
+                      <!--[sub_menu_block]-->
+                      <ul id="submenu">
+                        <li><a href='http://www.fujiprecision.com/index.html'>トップページ</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_rental_factory.html'>レンタル工場のご案内</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_flow_to_vietnam.html'>立ち上げまでのフロー</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_contract.html'>工場の仕様と契約について</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_about_vietnam.html'>ベトナムについて</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_information.html'>企業情報</a></li>
+                        <li><a href='http://www.fujiprecision.com/jp_contact.html'>お問い合わせ</a></li>
+
+                      </ul>
+                      <!--[/sub_menu_block]-->
+                      <!--[banner_block]-->
+
+<!--
+				<ul id="banners">
+                                <li><a href='http://weilli.net' rel="nozoom" target=_blank><img src='http://www.fujiprecision.com/images/BNR_9PbH24jR4YkHjC1J.jpg' alt="Bee" /></a></li>
+<li><a href='http://www.tamayoshi.co.jp' rel="nozoom" target=_blank><img src='http://www.fujiprecision.com/images/BNR_A2f6MFKFLduCP2Jr.jpg' alt="玉吉製作所" /></a></li>
+<li><a href='http://www.jtb.co.jp/kaigai/guide/SightList.aspx?CityCD=HAN' rel="nozoom" target=_blank><img src='http://www.fujiprecision.com/images/BNR_Q5qWhKqrAqR8Wnig.jpg' alt="ハノイの観光" /></a></li>
+
+				</ul>
+      -->
+      <!--[/banner_block]-->
+    </div>
+    <!--[/side]-->
+
+    <div id="sideend"></div>
+
+  </div>
+  <!--[/wrapper]-->
+  <!--[footer]-->
+  <div id="footer">
+
+    <p id="footmenu" class="right">｜<a href='http://www.fujiprecision.com/index.html'>日 本 語</a>｜<a href='http://www.fujiprecision.com/en_top.html'>English</a> | 
+    </p>
+    <p><br /></p>
+    <p id="sitename" class="left"></p>
+
+
+
+  </div>
+  <!--[/footer]-->
+
+</div>
+<!--[/container]-->
+
+</body>
+</html>
